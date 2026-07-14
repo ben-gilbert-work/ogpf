@@ -206,6 +206,8 @@ module ogpf
 
         character(len=:), allocatable  :: txtoptions    ! a long string to store all type of gnuplot options
         character(len=:), allocatable  :: txtscript     ! a long string to store gnuplot script
+        character(len=:), allocatable  :: txtterminal   ! a long string to store terminal options
+        character(len=:), allocatable  :: txtoutput     ! a long string to store output options
         character(len=:), allocatable  :: txtdatastyle  ! lines, points, linepoints
 
         logical :: hasxrange      = .false.
@@ -222,6 +224,11 @@ module ogpf
         real(wp)           :: x2range(2), y2range(2)
         character(len=8)   :: plotscale
 
+        ! terminal parameters
+        logical :: hasterminal
+        
+        ! output parameters
+        logical :: hasoutput
 
         ! multiplot parameters
         logical :: hasmultiplot = .false.
@@ -282,6 +289,8 @@ module ogpf
         procedure, pass, public :: ylim         => set_ylim
         procedure, pass, public :: zlim         => set_zlim
         procedure, pass, public :: filename     => set_filename
+        procedure, pass, public :: terminal     => set_terminal
+        procedure, pass, public :: output       => set_output
         procedure, pass, public :: reset        => reset_to_defaults
         procedure, pass, public :: preset       => use_preset_configuration
 
@@ -369,6 +378,32 @@ contains
     end subroutine set_options
 
 
+    subroutine set_terminal(this, string)
+        !..............................................................................
+        !Set the terminal
+        !..............................................................................
+        class(gpf):: this
+        character(len=*), intent(in) :: string
+        
+        this%txtterminal = 'set terminal ' // trim(string)
+        this%hasterminal = .true.
+
+    end subroutine set_terminal
+
+
+    subroutine set_output(this, string)
+        !..............................................................................
+        !Set the output
+        !..............................................................................
+        class(gpf):: this
+        character(len=*), intent(in) :: string
+        
+        this%txtoutput = 'set output "' // trim(string) // '"'
+        this%hasoutput = .true.
+
+    end subroutine set_output
+    
+    
     subroutine set_xlim(this,rng)
         !..............................................................................
         !Set the x axis limits in form of [xmin, xmax]
@@ -638,6 +673,8 @@ contains
         if (allocated(this%txtoptions))    deallocate(this%txtoptions)
         if (allocated(this%txtscript))     deallocate(this%txtscript)
         if (allocated(this%txtdatastyle))  deallocate(this%txtdatastyle)
+        if (allocated(this%txtterminal))   deallocate(this%txtterminal)
+        if (allocated(this%txtoutput))     deallocate(this%txtoutput)        
         if (allocated(this%msg))           deallocate(this%msg)
 
         this%hasoptions            = .false.
@@ -653,6 +690,8 @@ contains
         this%hasanimation          = .false.
         this%hasfileopen           = .false.
         this%hasmultiplot          = .false.
+        this%hasterminal           = .false.
+        this%hasoutput             = .false.
 
         this%plotscale             = ''
         this%tpplottitle%has_label =.false.
@@ -2205,6 +2244,17 @@ contains
         if (this%preset_configuration) then
             call this%preset_gnuplot_config()
         end if
+
+        ! write the terminal
+        if (this%hasterminal) then
+            write(this%file_unit, fmt='(a)') this%txtterminal
+        end if
+
+        ! write the output
+        if (this%hasoutput) then
+            write(this%file_unit, fmt='(a)') this%txtoutput
+        end if        
+        
         ! write multiplot setting
         if (this%hasmultiplot) then
             write(this%file_unit, fmt='(a, I2, a, I2)') 'set multiplot layout ', &
