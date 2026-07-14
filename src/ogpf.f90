@@ -235,6 +235,8 @@ module ogpf
         integer :: multiplot_rows
         integer :: multiplot_cols
         integer :: multiplot_total_plots
+        logical :: multiplot_hastitle = .false.
+        character(len=:), allocatable :: multiplot_title
 
         ! animation
         real                            :: pause_seconds = 0  ! keep plot on screen for this value in seconds
@@ -710,7 +712,7 @@ contains
     !!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-    subroutine sub_multiplot(this, rows, cols)
+    subroutine sub_multiplot(this, rows, cols, title)
         !..............................................................................
         ! This subroutine sets flag and number of rows and columns in case
         ! of multiplot layout
@@ -719,6 +721,7 @@ contains
         class(gpf):: this
         integer, intent(in) :: rows
         integer, intent(in) :: cols
+        character(len=*), optional, intent(in) :: title
 
         ! ogpf does not support multiplot in animation mode
         if (this%hasanimation) then
@@ -741,6 +744,12 @@ contains
         ! set the multiplot layout flag and plot numbers
         this%hasmultiplot = .true.
         this%multiplot_total_plots = 0
+
+        ! set the multiplot title flag and value
+        if (present(title)) then
+            this%multiplot_hastitle = .true.
+            this%multiplot_title = title
+        end if
 
         ! create the ouput file for writting gnuplot script
         call create_outputfile(this)
@@ -2257,8 +2266,14 @@ contains
         
         ! write multiplot setting
         if (this%hasmultiplot) then
-            write(this%file_unit, fmt='(a, I2, a, I2)') 'set multiplot layout ', &
-                this%multiplot_rows, ',',  this%multiplot_cols
+            if (this%multiplot_hastitle) then
+                write(this%file_unit, fmt='(a, I2, a, I2, a)') 'set multiplot layout ', &
+                    this%multiplot_rows, ',',  this%multiplot_cols, ' title ' &
+                    // this%multiplot_title
+            else
+                write(this%file_unit, fmt='(a, I2, a, I2)') 'set multiplot layout ', &
+                    this%multiplot_rows, ',',  this%multiplot_cols
+            end if
         end if
         ! set flag true for file is opened
         this%hasfileopen = .true.
